@@ -15,6 +15,5 @@ public interface MemoryCache {
 
     Resource put(Key key,Resource resource);
 
-    Resource remove(Key key);
-
+    Resource lruRemove(Key key);
 }

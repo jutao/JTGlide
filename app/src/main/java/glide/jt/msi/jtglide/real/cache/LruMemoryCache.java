@@ -11,6 +11,8 @@ public class LruMemoryCache extends LruCache<Key, Resource> implements MemoryCac
 
     private ResourceRemoveListener listener;
 
+    private boolean isRemoved=true;
+
     /**
      * @param maxSize for caches that do not override {@link #sizeOf}, this is
      *                the maximum number of entries in the cache. For all other caches,
@@ -32,7 +34,7 @@ public class LruMemoryCache extends LruCache<Key, Resource> implements MemoryCac
     @Override
     protected void entryRemoved(boolean evicted, Key key, Resource oldValue, Resource newValue) {
         //给复用池使用
-        if(null!=listener && null!=oldValue){
+        if(null!=listener && null!=oldValue&&!isRemoved){
             listener.onResourceRemoved(oldValue);
         }
 
@@ -45,5 +47,14 @@ public class LruMemoryCache extends LruCache<Key, Resource> implements MemoryCac
     @Override
     public void setResourceRemoveListener(ResourceRemoveListener listener) {
         this.listener=listener;
+    }
+
+    @Override
+    public Resource lruRemove(Key key) {
+        //如果是主动移除不回调 ResourceRemoveListener.onResourceRemoved
+        isRemoved=true;
+        Resource removed=remove(key);
+        isRemoved=false;
+        return removed;
     }
 }

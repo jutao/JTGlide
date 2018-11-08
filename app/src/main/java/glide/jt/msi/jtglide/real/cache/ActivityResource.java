@@ -1,9 +1,10 @@
-package glide.jt.msi.jtglide.real;
+package glide.jt.msi.jtglide.real.cache;
 
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import glide.jt.msi.jtglide.real.cache.Key;
 import glide.jt.msi.jtglide.real.cache.recycle.Resource;
@@ -46,6 +47,12 @@ public class ActivityResource {
         return null;
     }
 
+    /**
+     * 引用队列，通知我们弱引用被回收了
+     * 让我们得到通知
+     *
+     * @return
+     */
     public ReferenceQueue<Resource> getRefrenceQueue() {
         if (null == queue) {
             queue = new ReferenceQueue<>();
@@ -66,6 +73,34 @@ public class ActivityResource {
             cleanReferenceQueueThread.start();
         }
         return queue;
+    }
+
+    void shutDown() {
+        isShutDown = true;
+        if (cleanReferenceQueueThread != null) {
+            cleanReferenceQueueThread.interrupt();
+            try {
+                //必须在5秒内结束线程
+                cleanReferenceQueueThread.join(TimeUnit.SECONDS.toMillis(5));
+                if (cleanReferenceQueueThread.isAlive()) {
+                    throw new RuntimeException("Failed to join in time");
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    /**
+     * @param key
+     * @return
+     */
+    public Resource get(Key key){
+        ResourceWeakReference reference = activityResource.get(key);
+        if (reference != null) {
+            return reference.get();
+        }
+        return null;
     }
 
     private Map<Key, ResourceWeakReference> activityResource = new HashMap<>();
